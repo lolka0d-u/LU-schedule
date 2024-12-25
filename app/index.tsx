@@ -5,18 +5,32 @@ import {
 } from 'react-native';
 
 import { useRouter } from "expo-router"
+import * as SecureStore from 'expo-secure-store';
+
+
+async function saveValue(key: string,value: string) {
+    await SecureStore.setItemAsync(key, value);
+}
+
+function loadValue(key: string) {
+    let value = SecureStore.getItem(key);
+    return value ? value : "";
+}
 
 export default function Index() {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
+    const [username, setUsername] = useState(loadValue('username'));
+    const [password, setPassword] = useState(loadValue('password'));
     const [cookies, setCookies] = useState("");
 
+    const API_URL = process.env.EXPO_PUBLIC_SERVER_URL;
     const router = useRouter();
+
 
     async function genCookies(username: string, password: string) {
         setCookies("loading...");
+
         const response = await fetch(
-            "http://0.0.0.0:8000/genCookies",
+             API_URL + "/genCookies",
             {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
@@ -34,6 +48,9 @@ export default function Index() {
             } else {
                 // set in db
                 setCookies(data.MoodleSession);
+                await saveValue("login", username);
+                await saveValue("password", password);
+
                 router.push("/MainScreen");
             }
         }
@@ -57,8 +74,7 @@ export default function Index() {
                             </Text>
                         </View>
                         <View style={styles.inputContainer}>
-                            <TextInput
-                                value={username}
+                            <TextInput value={username}
                                 onChangeText={setUsername}
                                 style={styles.input}
                                 placeholder="Username"
@@ -76,7 +92,7 @@ export default function Index() {
                                 autoCapitalize="none"
                                 autoCorrect={false}
                             />
-                            <TouchableOpacity style={styles.button}
+                        <TouchableOpacity style={styles.button}
                                               onPress={() => genCookies(username, password)}>
                                 <Text style={styles.buttonText}>Login</Text>
                             </TouchableOpacity>
@@ -86,15 +102,14 @@ export default function Index() {
 
                             <Text
                                 style={styles.link}
-                                onPress={() => openLink("http://0.0.0.0:8000/terms/")}
+                                onPress={() => openLink(API_URL + "/term")}
                             >Terms of Service</Text> and{' '}
 
                             <Text style={styles.link}
-                                  onPress={() => openLink("http://0.0.0.0:8000/policy/")}
+                                  onPress={() => openLink(API_URL + "/policy")}
                             >Privacy Policy</Text>.
 
                         </Text>
-                        { cookies && <Text style={styles.termsText}>{cookies}</Text>}
                     </View>
                 </View>
             </ScrollView>
