@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {
     View, Text, TextInput, TouchableOpacity,
-    StyleSheet, ScrollView, SafeAreaView, Linking,
+    StyleSheet, ScrollView, SafeAreaView, Linking, ActivityIndicator,
 } from 'react-native';
 
 import { useRouter } from "expo-router"
@@ -21,14 +21,14 @@ export default function Index() {
     const [username, setUsername] = useState(loadValue('username'));
     const [password, setPassword] = useState(loadValue('password'));
     const [cookies, setCookies] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const API_URL = process.env.EXPO_PUBLIC_SERVER_URL;
     const router = useRouter();
 
 
     async function genCookies(username: string, password: string) {
-        setCookies("loading...");
-
+        setLoading(true);
         const response = await fetch(
              API_URL + "/genCookies",
             {
@@ -39,16 +39,18 @@ export default function Index() {
         );
 
         if (!response.ok) {
+            setLoading(false);
             setCookies("Request error");
         } else {
             const data = await response.json();
 
             if (!data.ok) {
+                setLoading(false);
                 setCookies(data.status);
             } else {
                 // set in db
-                setCookies(data.MoodleSession);
-                await saveValue("login", username);
+                setLoading(false);
+                await saveValue("username", username);
                 await saveValue("password", password);
 
                 router.push("/MainScreen");
@@ -66,7 +68,7 @@ export default function Index() {
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollView}>
                 <View style={styles.rightPanel}>
-                    <View style={styles.formContainer}>
+                    {loading ? <ActivityIndicator size="large" color="#0000ff" /> : <View style={styles.formContainer}>
                         <View style={styles.headerContainer}>
                             <Text style={styles.title}>Login to your account</Text>
                             <Text style={styles.subtitle}>
@@ -92,14 +94,14 @@ export default function Index() {
                                 autoCapitalize="none"
                                 autoCorrect={false}
                             />
-                        <TouchableOpacity style={styles.button}
-                                              onPress={() => genCookies(username, password)}>
-                                <Text style={styles.buttonText}>Login</Text>
+                            <TouchableOpacity style={styles.button}
+                                                  onPress={() => genCookies(username, password)}>
+                                    <Text style={styles.buttonText}>Login</Text>
                             </TouchableOpacity>
+                            {cookies}
                         </View>
                         <Text style={styles.termsText}>
                             By clicking continue, you agree to our{' '}
-
                             <Text
                                 style={styles.link}
                                 onPress={() => openLink(API_URL + "/term")}
@@ -110,7 +112,8 @@ export default function Index() {
                             >Privacy Policy</Text>.
 
                         </Text>
-                    </View>
+
+                    </View>}
                 </View>
             </ScrollView>
         </SafeAreaView>
